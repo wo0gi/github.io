@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>금 선물 수익 계산기</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f4f0;
+    --bg-tertiary: #eeece8;
+    --bg-success: #eaf3de;
+    --bg-danger: #fcebeb;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a65;
+    --text-tertiary: #9e9c96;
+    --text-success: #27500a;
+    --text-danger: #791f1f;
+    --border-tertiary: rgba(0,0,0,0.12);
+    --border-secondary: rgba(0,0,0,0.22);
+    --border-success: rgba(63,122,20,0.3);
+    --border-danger: rgba(180,50,50,0.3);
+    --gold: #d4a636;
+    --long-bg: #e6f1fb;
+    --long-border: rgba(24,95,165,0.35);
+    --long-text: #0c447c;
+    --long-active: #185fa5;
+    --short-bg: #fcebeb;
+    --short-border: rgba(163,45,45,0.35);
+    --short-text: #791f1f;
+    --short-active: #a32d2d;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c;
+      --bg-secondary: #282825;
+      --bg-tertiary: #313130;
+      --bg-success: #1a2e10;
+      --bg-danger: #2e1515;
+      --text-primary: #f0ede8;
+      --text-secondary: #a09e98;
+      --text-tertiary: #6e6c67;
+      --text-success: #a8d870;
+      --text-danger: #f09595;
+      --border-tertiary: rgba(255,255,255,0.1);
+      --border-secondary: rgba(255,255,255,0.18);
+      --border-success: rgba(100,180,50,0.3);
+      --border-danger: rgba(220,100,100,0.3);
+      --long-bg: #0c1e2e;
+      --long-border: rgba(55,138,221,0.3);
+      --long-text: #85b7eb;
+      --long-active: #185fa5;
+      --short-bg: #2e1515;
+      --short-border: rgba(220,100,100,0.3);
+      --short-text: #f09595;
+      --short-active: #a32d2d;
+    }
+  }
+
+  body {
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container { width: 100%; max-width: 560px; }
+
+  /* 헤더 */
+  .header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+  .header-icon {
+    width: 38px; height: 38px;
+    background: var(--gold);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 19px; font-weight: 500; }
+  .header-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+  /* 카드 */
+  .card {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-tertiary);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 10px;
+  }
+
+  .section-label {
+    font-size: 11px; font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* LONG / SHORT 토글 */
+  .direction-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dir-btn {
+    height: 46px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-secondary);
+    background: transparent;
+    font-size: 15px; font-weight: 500; cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-secondary);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
+  }
+  .dir-btn.long-btn { color: var(--long-text); border-color: var(--long-border); background: var(--long-bg); }
+  .dir-btn.short-btn { color: var(--short-text); border-color: var(--short-border); background: var(--short-bg); }
+  .dir-btn.long-btn.active { background: var(--long-active); border-color: var(--long-active); color: #fff; }
+  .dir-btn.short-btn.active { background: var(--short-active); border-color: var(--short-active); color: #fff; }
+  .dir-sub { font-size: 10px; opacity: 0.7; font-weight: 400; }
+
+  /* 컬럼 헤더 */
+  .col-head { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 8px; margin-bottom: 6px; }
+  .col-head span { font-size: 11px; color: var(--text-tertiary); }
+
+  /* 입력 행 */
+  .row-grid { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 8px; align-items: center; margin-bottom: 8px; }
+
+  input[type="number"] {
+    width: 100%; height: 38px; padding: 0 10px;
+    font-size: 14px; color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    outline: none; -moz-appearance: textfield;
+    transition: border-color 0.15s;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,166,54,0.18); }
+
+  .remove-btn {
+    width: 34px; height: 38px;
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md); background: transparent;
+    color: var(--text-secondary); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s; line-height: 1;
+  }
+  .remove-btn:hover { background: var(--bg-danger); color: var(--text-danger); border-color: var(--border-danger); }
+
+  .add-btn {
+    width: 100%; margin-top: 4px; padding: 9px;
+    border: 0.5px dashed var(--border-secondary);
+    border-radius: var(--radius-md); background: transparent;
+    color: var(--text-secondary); font-size: 13px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .add-btn:hover { background: var(--bg-secondary); }
+
+  /* 현재가 */
+  .current-wrap { display: flex; align-items: center; gap: 10px; }
+  .current-wrap input { flex: 1; }
+  .current-unit { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+
+  /* 계산 버튼 */
+  .calc-btn {
+    width: 100%; height: 50px;
+    background: var(--gold); border: none;
+    border-radius: var(--radius-lg); color: #fff;
+    font-size: 16px; font-weight: 500; cursor: pointer;
+    margin-top: 4px;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .calc-btn:hover { opacity: 0.9; }
+  .calc-btn:active { transform: scale(0.99); }
+
+  /* 결과 */
+  #resultSection { display: none; margin-top: 10px; }
+
+  .res-dir-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .dir-badge {
+    display: inline-block; font-size: 12px; font-weight: 500;
+    padding: 3px 10px; border-radius: 5px;
+  }
+  .dir-badge.long { background: var(--long-bg); color: var(--long-text); border: 0.5px solid var(--long-border); }
+  .dir-badge.short { background: var(--short-bg); color: var(--short-text); border: 0.5px solid var(--short-border); }
+
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .metric { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 11px 10px; }
+  .metric .m-label { font-size: 10px; color: var(--text-secondary); margin-bottom: 3px; }
+  .metric .m-value { font-size: 17px; font-weight: 500; color: var(--text-primary); }
+  .metric .m-unit { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+
+  /* 투자 요약 그리드 */
+  .invest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+
+  /* 진입별 손익 테이블 */
+  .entry-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  .entry-table th {
+    font-size: 10px; font-weight: 500; color: var(--text-tertiary);
+    text-align: right; padding: 0 6px 6px; letter-spacing: 0.04em;
+  }
+  .entry-table th:first-child { text-align: center; }
+  .entry-table td {
+    text-align: right; padding: 7px 6px;
+    border-top: 0.5px solid var(--border-tertiary);
+    color: var(--text-primary);
+  }
+  .entry-table td:first-child { text-align: center; color: var(--text-tertiary); font-size: 11px; }
+  .entry-table .total-row td { font-weight: 500; background: var(--bg-secondary); }
+  .td-pos { color: var(--text-success) !important; font-weight: 500; }
+  .td-neg { color: var(--text-danger) !important; font-weight: 500; }
+
+  /* 손익 카드 */
+  .pnl-card {
+    border-radius: var(--radius-lg); padding: 16px 18px;
+    border: 0.5px solid var(--border-tertiary);
+    background: var(--bg-secondary);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .pnl-card.positive { background: var(--bg-success); border-color: var(--border-success); }
+  .pnl-card.negative { background: var(--bg-danger); border-color: var(--border-danger); }
+
+  .pnl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .pnl-badge {
+    font-size: 12px; font-weight: 500; padding: 2px 10px;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary); color: var(--text-secondary);
+  }
+  .pnl-badge.positive { background: #c0dd97; color: #27500a; }
+  .pnl-badge.negative { background: #f7c1c1; color: #791f1f; }
+
+  .pnl-amount { font-size: 32px; font-weight: 500; color: var(--text-secondary); }
+  .pnl-amount.positive { color: var(--text-success); }
+  .pnl-amount.negative { color: var(--text-danger); }
+
+  .pnl-rows { margin-top: 12px; display: flex; flex-direction: column; gap: 0; }
+  .pnl-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; padding: 6px 0;
+    border-bottom: 0.5px solid var(--border-tertiary);
+  }
+  .pnl-row:last-child { border-bottom: none; }
+  .pr-label { color: var(--text-secondary); }
+  .pr-val { font-weight: 500; color: var(--text-primary); }
+  .pr-val.pos { color: var(--text-success); }
+  .pr-val.neg { color: var(--text-danger); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-icon">Au</div>
+    <div>
+      <div class="header-title">금 선물 수익 계산기</div>
+      <div class="header-sub">XAUUSD Futures P&amp;L Calculator</div>
+    </div>
+  </div>
+
+  <!-- 포지션 방향 -->
+  <div class="card">
+    <div class="section-label">포지션 방향</div>
+    <div class="direction-toggle">
+      <button class="dir-btn long-btn active" id="btnLong" onclick="setDirection('LONG')">
+        ▲ LONG
+        <span class="dir-sub">매수 포지션</span>
+      </button>
+      <button class="dir-btn short-btn" id="btnShort" onclick="setDirection('SHORT')">
+        ▼ SHORT
+        <span class="dir-sub">매도 포지션</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 진입 내역 -->
+  <div class="card">
+    <div class="section-label">진입 내역</div>
+    <div class="col-head">
+      <span>진입 단가 (USD)</span>
+      <span>수량 (lot)</span>
+      <span></span>
+    </div>
+    <div id="entries"></div>
+    <button class="add-btn" onclick="addRow()">+ 항목 추가</button>
+  </div>
+
+  <!-- 현재가 -->
+  <div class="card">
+    <div class="section-label">현재가</div>
+    <div class="current-wrap">
+      <input type="number" id="currentPrice" placeholder="현재가 입력 (USD)" step="0.1" min="0">
+      <span class="current-unit">USD / troy oz</span>
+    </div>
+  </div>
+
+  <!-- 계산 버튼 -->
+  <button class="calc-btn" onclick="calculate()">계 산 하 기</button>
+
+  <!-- 결과 -->
+  <div id="resultSection">
+    <div class="card">
+      <div class="section-label">계산 결과</div>
+
+      <div class="res-dir-row">
+        <span class="dir-badge" id="resDirBadge">LONG</span>
+      </div>
+
+      <div class="result-grid">
+        <div class="metric">
+          <div class="m-label">평균 단가</div>
+          <div class="m-value" id="avgPrice">—</div>
+          <div class="m-unit">USD</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">총 수량</div>
+          <div class="m-value" id="totalQty">—</div>
+          <div class="m-unit">lot</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">현재가</div>
+          <div class="m-value" id="resCurPrice">—</div>
+          <div class="m-unit">USD</div>
+        </div>
+      </div>
+
+      <div id="pnlCard" class="pnl-card">
+        <div class="pnl-top">
+          <span class="pnl-badge" id="pnlBadge">—</span>
+        </div>
+        <div class="pnl-amount" id="pnlAmount">—</div>
+        <div class="pnl-rows">
+          <div class="pnl-row">
+            <span class="pr-label">단가 차이</span>
+            <span class="pr-val" id="priceDiff">—</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pr-label">수익률</span>
+            <span class="pr-val" id="pnlPct">—</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pr-label">lot당 손익</span>
+            <span class="pr-val" id="pnlPerLot">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 전체 손익 요약 -->
+      <div style="margin-top:12px;">
+        <div class="section-label" style="margin-bottom:8px;">전체 손익 요약</div>
+        <div class="invest-grid">
+          <div class="metric">
+            <div class="m-label">총 투자금액</div>
+            <div class="m-value" id="totalInvest">—</div>
+            <div class="m-unit">USD</div>
+          </div>
+          <div class="metric">
+            <div class="m-label">현재 평가금액</div>
+            <div class="m-value" id="totalEval">—</div>
+            <div class="m-unit">USD</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 진입별 손익 내역 -->
+      <div style="margin-top:4px;">
+        <div class="section-label" style="margin-bottom:8px;">진입별 손익 내역</div>
+        <table class="entry-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>진입단가</th>
+              <th>수량(lot)</th>
+              <th>손익($)</th>
+              <th>수익률</th>
+            </tr>
+          </thead>
+          <tbody id="entryTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let rows = [];
+  let idSeq = 0;
+  let direction = 'LONG';
+
+  function setDirection(dir) {
+    direction = dir;
+    document.getElementById('btnLong').classList.toggle('active', dir === 'LONG');
+    document.getElementById('btnShort').classList.toggle('active', dir === 'SHORT');
+  }
+
+  function addRow(price, qty) {
+    const id = ++idSeq;
+    rows.push(id);
+    const container = document.getElementById('entries');
+    const div = document.createElement('div');
+    div.className = 'row-grid';
+    div.id = 'row-' + id;
+    div.innerHTML = `
+      <input type="number" id="p${id}" placeholder="3,300.00" step="0.01" min="0"
+        value="${price !== undefined ? price : ''}">
+      <input type="number" id="q${id}" placeholder="0.01" step="0.01" min="0.01" max="100"
+        value="${qty !== undefined ? qty : '0.01'}">
+      <button class="remove-btn" onclick="removeRow(${id})" title="삭제">×</button>
+    `;
+    container.appendChild(div);
+  }
+
+  function removeRow(id) {
+    if (rows.length <= 1) return;
+    rows = rows.filter(r => r !== id);
+    const el = document.getElementById('row-' + id);
+    if (el) el.remove();
+  }
+
+  function calculate() {
+    let totalCost = 0, totalQty = 0, valid = false;
+    let entries = [];
+
+    rows.forEach(id => {
+      const pEl = document.getElementById('p' + id);
+      const qEl = document.getElementById('q' + id);
+      if (!pEl || !qEl) return;
+      const p = parseFloat(pEl.value);
+      const q = parseFloat(qEl.value);
+      if (!isNaN(p) && p > 0 && !isNaN(q) && q >= 0.01 && q <= 100) {
+        totalCost += p * q;
+        totalQty += q;
+        entries.push({ p, q });
+        valid = true;
+      }
+    });
+
+    if (!valid || totalQty === 0) {
+      alert('진입 단가와 수량을 올바르게 입력해 주세요.\n수량 범위: 0.01 ~ 100 lot');
+      return;
+    }
+
+    const cur = parseFloat(document.getElementById('currentPrice').value);
+    if (isNaN(cur) || cur <= 0) {
+      alert('현재가를 입력해 주세요.');
+      return;
+    }
+
+    const LOT_UNIT = 100; // 금선물 1lot = 100 troy oz
+
+    const avg = totalCost / totalQty;
+    const totalEval = cur * totalQty;
+
+    // LONG: 현재가 - 평균단가 / SHORT: 평균단가 - 현재가
+    const diff = direction === 'LONG' ? (cur - avg) : (avg - cur);
+    const totalPnl = diff * totalQty * LOT_UNIT;  // ×100 적용
+    const pct = (diff / avg) * 100;
+    const sign = diff >= 0 ? '+' : '';
+    const cls = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+    const label = diff > 0 ? '▲ 수익' : diff < 0 ? '▼ 손실' : '◼ 보합';
+    const valCls = diff > 0 ? 'pr-val pos' : diff < 0 ? 'pr-val neg' : 'pr-val';
+
+    // 결과 표시
+    const resultSec = document.getElementById('resultSection');
+    resultSec.style.display = 'block';
+
+    const dirBadge = document.getElementById('resDirBadge');
+    dirBadge.textContent = direction === 'LONG' ? '▲ LONG  매수 포지션' : '▼ SHORT  매도 포지션';
+    dirBadge.className = 'dir-badge ' + direction.toLowerCase();
+
+    document.getElementById('avgPrice').textContent = avg.toFixed(2);
+    document.getElementById('totalQty').textContent = totalQty.toFixed(2);
+    document.getElementById('resCurPrice').textContent = cur.toFixed(2);
+
+    const pnlCard = document.getElementById('pnlCard');
+    const pnlBadge = document.getElementById('pnlBadge');
+    const pnlAmt = document.getElementById('pnlAmount');
+
+    pnlCard.className = 'pnl-card ' + cls;
+    pnlBadge.className = 'pnl-badge ' + cls;
+    pnlBadge.textContent = label;
+    pnlAmt.className = 'pnl-amount ' + cls;
+    pnlAmt.textContent = sign + '$' + Math.abs(totalPnl).toFixed(2);
+
+    const priceDiffEl = document.getElementById('priceDiff');
+    priceDiffEl.className = valCls;
+    priceDiffEl.textContent = sign + '$' + diff.toFixed(2);
+
+    const pnlPctEl = document.getElementById('pnlPct');
+    pnlPctEl.className = valCls;
+    pnlPctEl.textContent = sign + pct.toFixed(2) + '%';
+
+    const pnlPerLotEl = document.getElementById('pnlPerLot');
+    pnlPerLotEl.className = valCls;
+    // lot당 손익도 ×100
+    pnlPerLotEl.textContent = sign + '$' + (diff * LOT_UNIT).toFixed(2) + ' / lot';
+
+    // 전체 손익 요약 (투자금액·평가금액은 단가 기준 그대로)
+    document.getElementById('totalInvest').textContent = totalCost.toFixed(2);
+    document.getElementById('totalEval').textContent = totalEval.toFixed(2);
+
+    // 진입별 손익 테이블
+    const tbody = document.getElementById('entryTableBody');
+    tbody.innerHTML = '';
+    let grandPnl = 0;
+    entries.forEach((e, i) => {
+      const eDiff = direction === 'LONG' ? (cur - e.p) : (e.p - cur);
+      const ePnl = eDiff * e.q * LOT_UNIT;  // ×100 적용
+      const ePct = (eDiff / e.p) * 100;
+      const eSign = eDiff >= 0 ? '+' : '';
+      const eCls = eDiff > 0 ? 'td-pos' : eDiff < 0 ? 'td-neg' : '';
+      grandPnl += ePnl;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>$${e.p.toFixed(2)}</td>
+        <td>${e.q.toFixed(2)}</td>
+        <td class="${eCls}">${eSign}$${ePnl.toFixed(2)}</td>
+        <td class="${eCls}">${eSign}${ePct.toFixed(2)}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // 합계 행
+    const totalSign = grandPnl >= 0 ? '+' : '';
+    const totalCls = grandPnl > 0 ? 'td-pos' : grandPnl < 0 ? 'td-neg' : '';
+    const totalPct = (grandPnl / (totalCost * LOT_UNIT)) * 100;
+    const totalPctSign = totalPct >= 0 ? '+' : '';
+    const trTotal = document.createElement('tr');
+    trTotal.className = 'total-row';
+    trTotal.innerHTML = `
+      <td>합계</td>
+      <td>—</td>
+      <td>${totalQty.toFixed(2)}</td>
+      <td class="${totalCls}">${totalSign}$${grandPnl.toFixed(2)}</td>
+      <td class="${totalCls}">${totalPctSign}${totalPct.toFixed(2)}%</td>
+    `;
+    tbody.appendChild(trTotal);
+
+    setTimeout(() => resultSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  }
+
+  addRow();
+  addRow();
+</script>
+</body>
+</html>
